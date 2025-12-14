@@ -77,12 +77,14 @@ cat("\nFréquences :\n")
 print(freq(d$Sexe))
 
 # Graphique à barres
-ggplot(d, aes(x = Sexe)) +
-  geom_bar(fill = c("pink", "lightblue"), col = "black") +
+ggplot(d, aes(x = Sexe, fill = Sexe)) +
+  geom_bar(col = "black") +
+  scale_fill_manual(values = c("Femme" = "pink", "Homme" = "lightblue"), na.value = "grey") +
   labs(title = "Répartition des répondants par sexe",
        x = "Sexe",
        y = "Effectif") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none")
 
 ggsave("graphique_sexe.png", width = 8, height = 6)
 
@@ -105,7 +107,7 @@ print(freq(d$Client))
 
 # Graphique
 ggplot(d, aes(x = Client)) +
-  geom_bar(fill = "steelblue", col = "black") +
+  geom_bar(fill = "steelblue", col = "black", na.rm = FALSE) +
   labs(title = "Répartition selon le statut client",
        x = "Statut (Client Carrefour)",
        y = "Effectif") +
@@ -133,7 +135,7 @@ print(freq(d$Age))
 
 # Graphique
 ggplot(d, aes(x = Age)) +
-  geom_bar(fill = "coral", col = "black") +
+  geom_bar(fill = "coral", col = "black", na.rm = FALSE) +
   labs(title = "Répartition des répondants par tranche d'âge",
        x = "Tranche d'âge",
        y = "Effectif") +
@@ -169,7 +171,7 @@ print(freq(d$Satisfaction.globale))
 
 # Graphique à barres
 ggplot(d, aes(x = Satisfaction.globale)) +
-  geom_bar(fill = "darkgreen", col = "white") +
+  geom_bar(fill = "darkgreen", col = "white", na.rm = FALSE) +
   labs(title = "Distribution de la satisfaction globale",
        x = "Satisfait de Carrefour",
        y = "Effectif") +
@@ -203,7 +205,7 @@ cat("Écart-type :", sd(d$Frequence.visite.num, na.rm = TRUE), "\n")
 
 # Graphique à barres
 ggplot(d, aes(x = Frequence.de.visite.du.magasin)) +
-  geom_bar(fill = "purple", col = "white") +
+  geom_bar(fill = "purple", col = "white", na.rm = FALSE) +
   labs(title = "Distribution de la fréquence de visite",
        x = "Fréquence de visite",
        y = "Effectif") +
@@ -254,7 +256,7 @@ test_chi2_1 <- chisq.test(tab1)
 print(test_chi2_1)
 
 # Graphique empilé
-ggplot(d, aes(x = Sexe, fill = Client)) +
+ggplot(d %>% filter(!is.na(Sexe) & !is.na(Client)), aes(x = Sexe, fill = Client)) +
   geom_bar(position = "fill") +
   labs(title = "Statut client selon le sexe",
        x = "Sexe",
@@ -265,7 +267,7 @@ ggplot(d, aes(x = Sexe, fill = Client)) +
 ggsave("graphique_sexe_client.png", width = 8, height = 6)
 
 # Graphique côte à côte
-ggplot(d, aes(x = Sexe, fill = Client)) +
+ggplot(d %>% filter(!is.na(Sexe) & !is.na(Client)), aes(x = Sexe, fill = Client)) +
   geom_bar(position = "dodge") +
   labs(title = "Statut client selon le sexe",
        x = "Sexe",
@@ -313,7 +315,7 @@ test_chi2_2 <- chisq.test(tab2)
 print(test_chi2_2)
 
 # Graphique empilé
-ggplot(d, aes(x = Client, fill = Satisfaction.globale)) +
+ggplot(d %>% filter(!is.na(Client) & !is.na(Satisfaction.globale)), aes(x = Client, fill = Satisfaction.globale)) +
   geom_bar(position = "fill") +
   labs(title = "Satisfaction selon le statut client",
        x = "Statut client",
@@ -324,7 +326,7 @@ ggplot(d, aes(x = Client, fill = Satisfaction.globale)) +
 ggsave("graphique_client_satisfaction.png", width = 8, height = 6)
 
 # Graphique côte à côte
-ggplot(d, aes(x = Client, fill = Satisfaction.globale)) +
+ggplot(d %>% filter(!is.na(Client) & !is.na(Satisfaction.globale)), aes(x = Client, fill = Satisfaction.globale)) +
   geom_bar(position = "dodge") +
   labs(title = "Satisfaction selon le statut client",
        x = "Statut client",
@@ -372,7 +374,8 @@ test_chi2_3 <- chisq.test(tab3)
 print(test_chi2_3)
 
 # Graphique empilé
-ggplot(d, aes(x = Frequence.de.visite.du.magasin, fill = Satisfaction.globale)) +
+ggplot(d %>% filter(!is.na(Frequence.de.visite.du.magasin) & !is.na(Satisfaction.globale)),
+       aes(x = Frequence.de.visite.du.magasin, fill = Satisfaction.globale)) +
   geom_bar(position = "fill") +
   labs(title = "Satisfaction selon la fréquence de visite",
        x = "Fréquence de visite",
@@ -384,7 +387,8 @@ ggplot(d, aes(x = Frequence.de.visite.du.magasin, fill = Satisfaction.globale)) 
 ggsave("graphique_frequence_satisfaction.png", width = 10, height = 6)
 
 # Graphique côte à côte
-ggplot(d, aes(x = Frequence.de.visite.du.magasin, fill = Satisfaction.globale)) +
+ggplot(d %>% filter(!is.na(Frequence.de.visite.du.magasin) & !is.na(Satisfaction.globale)),
+       aes(x = Frequence.de.visite.du.magasin, fill = Satisfaction.globale)) +
   geom_bar(position = "dodge") +
   labs(title = "Satisfaction selon la fréquence de visite",
        x = "Fréquence de visite",
@@ -429,8 +433,9 @@ test_chi2_4 <- chisq.test(tab4)
 print(test_chi2_4)
 
 # Graphique
-ggplot(d, aes(x = Age, fill = Sexe)) +
+ggplot(d %>% filter(!is.na(Age) & !is.na(Sexe)), aes(x = Age, fill = Sexe)) +
   geom_bar(position = "dodge") +
+  scale_fill_manual(values = c("Femme" = "pink", "Homme" = "lightblue")) +
   labs(title = "Répartition par âge et sexe",
        x = "Tranche d'âge",
        y = "Effectif",
