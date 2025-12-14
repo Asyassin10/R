@@ -30,18 +30,19 @@ head(d, 10)
 cat("\n===== RÉSUMÉ STATISTIQUE =====\n")
 summary(d)
 
+# Afficher les noms de colonnes pour vérification
+cat("\n===== NOMS DES COLONNES =====\n")
+print(names(d))
+
 # Renommer les colonnes pour faciliter l'analyse
-# Mapping des vrais noms de colonnes vers des noms courts
-d <- d %>%
-  rename(
-    Client = `Etes-vous client de CARREFOUR ?`,
-    Sexe = `Quel est votre sexe ?`,
-    Age = `Dans quelle tranche se situe votre âge ?`,
-    Profession = `Quelle est votre profession ?`,
-    Revenu = `Dans quelle tranche se situe votre revenu mensuel ?`,
-    Satisfaction.globale = `Globalement êtes-vous satisfait(e) de la marque CARREFOUR ?`,
-    Frequence.de.visite.du.magasin = `A quelle fréquence allez-vous à CARREFOUR ?`
-  )
+# Utiliser les positions pour éviter les problèmes d'encodage
+colnames(d)[2] <- "Client"
+colnames(d)[20] <- "Sexe"
+colnames(d)[21] <- "Age"
+colnames(d)[22] <- "Profession"
+colnames(d)[23] <- "Revenu"
+colnames(d)[18] <- "Satisfaction.globale"
+colnames(d)[11] <- "Frequence.de.visite.du.magasin"
 
 # Convertir la satisfaction globale en variable numérique (OUI=1, NON=0)
 d$Satisfaction.globale.num <- ifelse(d$Satisfaction.globale == "OUI", 1, 0)
