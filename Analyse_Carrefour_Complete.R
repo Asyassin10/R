@@ -30,8 +30,29 @@ head(d, 10)
 cat("\n===== RÉSUMÉ STATISTIQUE =====\n")
 summary(d)
 
-# Nettoyage des noms de colonnes pour faciliter l'analyse
-names(d) <- make.names(names(d))
+# Renommer les colonnes pour faciliter l'analyse
+# Mapping des vrais noms de colonnes vers des noms courts
+d <- d %>%
+  rename(
+    Client = `Etes-vous client de CARREFOUR ?`,
+    Sexe = `Quel est votre sexe ?`,
+    Age = `Dans quelle tranche se situe votre âge ?`,
+    Profession = `Quelle est votre profession ?`,
+    Revenu = `Dans quelle tranche se situe votre revenu mensuel ?`,
+    Satisfaction.globale = `Globalement êtes-vous satisfait(e) de la marque CARREFOUR ?`,
+    Frequence.de.visite.du.magasin = `A quelle fréquence allez-vous à CARREFOUR ?`
+  )
+
+# Convertir la satisfaction globale en variable numérique (OUI=1, NON=0)
+d$Satisfaction.globale.num <- ifelse(d$Satisfaction.globale == "OUI", 1, 0)
+
+# Créer une variable numérique pour la fréquence de visite
+d$Frequence.visite.num <- case_when(
+  d$Frequence.de.visite.du.magasin == "Plus de 5 fois par mois" ~ 6,
+  d$Frequence.de.visite.du.magasin == "1 a 5 fois par mois" ~ 3,
+  d$Frequence.de.visite.du.magasin == "Moins d'une fois par mois" ~ 0.5,
+  TRUE ~ NA_real_
+)
 
 #############################################################
 #####     II. ANALYSE UNIVARIÉE                          #####
@@ -139,37 +160,26 @@ cat("==================================================\n\n")
 
 cat("\n--- 4. ANALYSE DE LA SATISFACTION GLOBALE ---\n\n")
 
-# Statistiques descriptives
-cat("Statistiques descriptives :\n")
-print(summary(d$Satisfaction.globale))
-cat("\nMoyenne :", mean(d$Satisfaction.globale, na.rm = TRUE), "\n")
-cat("Écart-type :", sd(d$Satisfaction.globale, na.rm = TRUE), "\n")
-cat("Médiane :", median(d$Satisfaction.globale, na.rm = TRUE), "\n")
+# Tableau de fréquence de la satisfaction (OUI/NON)
+cat("Fréquence de satisfaction :\n")
+print(table(d$Satisfaction.globale))
+cat("\n")
+print(freq(d$Satisfaction.globale))
 
-# Histogramme
+# Graphique à barres
 ggplot(d, aes(x = Satisfaction.globale)) +
-  geom_histogram(fill = "darkgreen", col = "white", bins = 10) +
+  geom_bar(fill = "darkgreen", col = "white") +
   labs(title = "Distribution de la satisfaction globale",
-       x = "Score de satisfaction",
+       x = "Satisfait de Carrefour",
        y = "Effectif") +
   theme_minimal()
 
-ggsave("histogramme_satisfaction_globale.png", width = 8, height = 6)
-
-# Boîte à moustaches
-ggplot(d, aes(y = Satisfaction.globale)) +
-  geom_boxplot(fill = "lightgreen", col = "darkgreen") +
-  labs(title = "Boîte à moustaches - Satisfaction globale",
-       y = "Score de satisfaction") +
-  theme_minimal()
-
-ggsave("boxplot_satisfaction_globale.png", width = 6, height = 8)
+ggsave("graphique_satisfaction_globale.png", width = 8, height = 6)
 
 cat("\n*** INTERPRÉTATION - SATISFACTION GLOBALE ***\n")
-cat("La satisfaction globale est une variable quantitative clé pour évaluer\n")
-cat("la performance de Carrefour auprès de sa clientèle.\n")
-cat("La moyenne et la distribution nous informent sur le niveau général de satisfaction.\n")
-cat("Un score élevé indique une bonne perception, un score faible suggère des améliorations nécessaires.\n\n")
+cat("La satisfaction globale indique si les clients sont satisfaits de Carrefour.\n")
+cat("La proportion de clients satisfaits (OUI) vs insatisfaits (NON)\n")
+cat("est un indicateur clé de la performance de l'enseigne.\n\n")
 
 
 #----------------------------------------------------------
@@ -178,21 +188,28 @@ cat("Un score élevé indique une bonne perception, un score faible suggère des
 
 cat("\n--- 5. ANALYSE DE LA FRÉQUENCE DE VISITE ---\n\n")
 
-# Statistiques descriptives
-cat("Statistiques descriptives :\n")
-print(summary(d$Frequence.de.visite.du.magasin))
-cat("\nMoyenne :", mean(d$Frequence.de.visite.du.magasin, na.rm = TRUE), "\n")
-cat("Écart-type :", sd(d$Frequence.de.visite.du.magasin, na.rm = TRUE), "\n")
+# Fréquences par catégorie
+cat("Fréquence de visite par catégorie :\n")
+print(table(d$Frequence.de.visite.du.magasin))
+cat("\n")
+print(freq(d$Frequence.de.visite.du.magasin))
 
-# Histogramme
+# Statistiques descriptives sur la version numérique
+cat("\nStatistiques descriptives (version numérique) :\n")
+print(summary(d$Frequence.visite.num))
+cat("\nMoyenne :", mean(d$Frequence.visite.num, na.rm = TRUE), "visites/mois\n")
+cat("Écart-type :", sd(d$Frequence.visite.num, na.rm = TRUE), "\n")
+
+# Graphique à barres
 ggplot(d, aes(x = Frequence.de.visite.du.magasin)) +
-  geom_histogram(fill = "purple", col = "white", bins = 15) +
+  geom_bar(fill = "purple", col = "white") +
   labs(title = "Distribution de la fréquence de visite",
-       x = "Nombre de visites",
+       x = "Fréquence de visite",
        y = "Effectif") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave("histogramme_frequence_visite.png", width = 8, height = 6)
+ggsave("graphique_frequence_visite.png", width = 10, height = 6)
 
 cat("\n*** INTERPRÉTATION - FRÉQUENCE DE VISITE ***\n")
 cat("La fréquence de visite mesure la fidélité et l'engagement des clients.\n")
@@ -270,135 +287,122 @@ if(test_chi2_1$p.value < 0.05) {
 
 
 #----------------------------------------------------------
-# ANALYSE 2 : Variable QUALITATIVE vs Variable QUANTITATIVE
+# ANALYSE 2 : Variable QUALITATIVE vs Variable QUALITATIVE
 # STATUT CLIENT vs SATISFACTION GLOBALE
 #----------------------------------------------------------
 
 cat("\n--- ANALYSE 2 : STATUT CLIENT × SATISFACTION GLOBALE ---\n\n")
 
-# Moyennes par groupe
-cat("Satisfaction moyenne par statut client :\n")
-moyennes_satisfaction <- tapply(d$Satisfaction.globale, d$Client, mean, na.rm = TRUE)
-print(moyennes_satisfaction)
+# Tableau de contingence
+tab2 <- table(d$Client, d$Satisfaction.globale)
+cat("Tableau de contingence :\n")
+print(tab2)
 
-# Test de normalité
-cat("\nTest de normalité (Shapiro-Wilk) :\n")
-test_normalite_sat <- shapiro.test(d$Satisfaction.globale)
-print(test_normalite_sat)
+# Proportions par ligne
+cat("\nProportions par ligne (% par statut client) :\n")
+print(prop.table(tab2, margin = 1))
 
-# Test statistique approprié
-if(test_normalite_sat$p.value >= 0.05) {
-  cat("\nLa variable suit une loi normale → Test de Student\n")
-  test_stat_2 <- t.test(Satisfaction.globale ~ Client, data = d)
-  print(test_stat_2)
-} else {
-  cat("\nLa variable ne suit PAS une loi normale → Test de Wilcoxon\n")
-  test_stat_2 <- wilcox.test(Satisfaction.globale ~ Client, data = d)
-  print(test_stat_2)
-}
+# Proportions par colonne
+cat("\nProportions par colonne (% par satisfaction) :\n")
+print(prop.table(tab2, margin = 2))
 
-# Graphique des moyennes
-ggplot(d, aes(x = Client, y = Satisfaction.globale)) +
-  geom_bar(stat = "summary", fun = "mean",
-           fill = c("tomato", "skyblue"), col = "black") +
-  labs(title = "Satisfaction moyenne selon le statut client",
+# Test du Chi-2
+cat("\nTest du Chi-2 :\n")
+test_chi2_2 <- chisq.test(tab2)
+print(test_chi2_2)
+
+# Graphique empilé
+ggplot(d, aes(x = Client, fill = Satisfaction.globale)) +
+  geom_bar(position = "fill") +
+  labs(title = "Satisfaction selon le statut client",
        x = "Statut client",
-       y = "Satisfaction moyenne") +
+       y = "Proportion",
+       fill = "Satisfait") +
   theme_minimal()
 
 ggsave("graphique_client_satisfaction.png", width = 8, height = 6)
 
-# Boîtes à moustaches
-ggplot(d, aes(x = Client, y = Satisfaction.globale, fill = Client)) +
-  geom_boxplot() +
-  labs(title = "Distribution de la satisfaction selon le statut client",
+# Graphique côte à côte
+ggplot(d, aes(x = Client, fill = Satisfaction.globale)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Satisfaction selon le statut client",
        x = "Statut client",
-       y = "Satisfaction globale") +
-  theme_minimal() +
-  theme(legend.position = "none")
+       y = "Effectif",
+       fill = "Satisfait") +
+  theme_minimal()
 
-ggsave("boxplot_client_satisfaction.png", width = 8, height = 6)
+ggsave("graphique_client_satisfaction_dodge.png", width = 8, height = 6)
 
 cat("\n*** INTERPRÉTATION - STATUT CLIENT × SATISFACTION ***\n")
-if(test_stat_2$p.value < 0.05) {
-  cat("Il existe une DIFFÉRENCE SIGNIFICATIVE (p < 0.05) de satisfaction\n")
-  cat("entre les clients et les non-clients de Carrefour.\n")
-  if(moyennes_satisfaction[1] > moyennes_satisfaction[2]) {
-    cat("Les non-clients ont une satisfaction moyenne plus élevée.\n\n")
-  } else {
-    cat("Les clients ont une satisfaction moyenne plus élevée.\n\n")
-  }
+if(test_chi2_2$p.value < 0.05) {
+  cat("Il existe une RELATION SIGNIFICATIVE (p < 0.05)\n")
+  cat("entre le statut client et la satisfaction.\n")
+  cat("Les clients et non-clients ont des niveaux de satisfaction différents.\n\n")
 } else {
-  cat("Il n'y a PAS de différence significative (p >= 0.05) de satisfaction\n")
-  cat("entre les clients et les non-clients de Carrefour.\n")
+  cat("Il n'y a PAS de relation significative (p >= 0.05)\n")
+  cat("entre le statut client et la satisfaction.\n")
   cat("Le statut client n'influence pas significativement la satisfaction.\n\n")
 }
 
 
 #----------------------------------------------------------
-# ANALYSE 3 : Deux variables QUANTITATIVES
+# ANALYSE 3 : Variable QUALITATIVE vs Variable QUALITATIVE
 # SATISFACTION GLOBALE vs FRÉQUENCE DE VISITE
 #----------------------------------------------------------
 
 cat("\n--- ANALYSE 3 : SATISFACTION × FRÉQUENCE DE VISITE ---\n\n")
 
-# Test de normalité pour les deux variables
-cat("Tests de normalité :\n")
-test_norm_sat <- shapiro.test(d$Satisfaction.globale)
-test_norm_freq <- shapiro.test(d$Frequence.de.visite.du.magasin)
-cat("Satisfaction globale :\n")
-print(test_norm_sat)
-cat("\nFréquence de visite :\n")
-print(test_norm_freq)
+# Tableau de contingence
+tab3 <- table(d$Frequence.de.visite.du.magasin, d$Satisfaction.globale)
+cat("Tableau de contingence :\n")
+print(tab3)
 
-# Test de corrélation approprié
-if(test_norm_sat$p.value >= 0.05 & test_norm_freq$p.value >= 0.05) {
-  cat("\nLes deux variables suivent une loi normale → Test de Pearson\n")
-  test_corr <- cor.test(d$Satisfaction.globale, d$Frequence.de.visite.du.magasin,
-                        method = "pearson")
-  print(test_corr)
-} else {
-  cat("\nAu moins une variable ne suit pas une loi normale → Test de Spearman\n")
-  test_corr <- cor.test(d$Satisfaction.globale, d$Frequence.de.visite.du.magasin,
-                        method = "spearman")
-  print(test_corr)
-}
+# Proportions par ligne
+cat("\nProportions par ligne (% par fréquence) :\n")
+print(prop.table(tab3, margin = 1))
 
-# Nuage de points
-ggplot(d, aes(x = Frequence.de.visite.du.magasin, y = Satisfaction.globale)) +
-  geom_point(col = "darkblue", size = 2, alpha = 0.6) +
-  geom_smooth(method = "lm", col = "red", se = TRUE) +
-  labs(title = "Relation entre satisfaction et fréquence de visite",
-       x = "Fréquence de visite (nombre)",
-       y = "Satisfaction globale") +
-  theme_minimal()
+# Proportions par colonne
+cat("\nProportions par colonne (% par satisfaction) :\n")
+print(prop.table(tab3, margin = 2))
 
-ggsave("nuage_points_satisfaction_frequence.png", width = 8, height = 6)
+# Test du Chi-2
+cat("\nTest du Chi-2 :\n")
+test_chi2_3 <- chisq.test(tab3)
+print(test_chi2_3)
+
+# Graphique empilé
+ggplot(d, aes(x = Frequence.de.visite.du.magasin, fill = Satisfaction.globale)) +
+  geom_bar(position = "fill") +
+  labs(title = "Satisfaction selon la fréquence de visite",
+       x = "Fréquence de visite",
+       y = "Proportion",
+       fill = "Satisfait") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("graphique_frequence_satisfaction.png", width = 10, height = 6)
+
+# Graphique côte à côte
+ggplot(d, aes(x = Frequence.de.visite.du.magasin, fill = Satisfaction.globale)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Satisfaction selon la fréquence de visite",
+       x = "Fréquence de visite",
+       y = "Effectif",
+       fill = "Satisfait") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("graphique_frequence_satisfaction_dodge.png", width = 10, height = 6)
 
 cat("\n*** INTERPRÉTATION - SATISFACTION × FRÉQUENCE ***\n")
-if(test_corr$p.value < 0.05) {
-  cat("Il existe une CORRÉLATION SIGNIFICATIVE (p < 0.05) entre la satisfaction\n")
-  cat("et la fréquence de visite.\n")
-  cat("Coefficient de corrélation :", round(test_corr$estimate, 3), "\n")
-
-  if(test_corr$estimate > 0.5) {
-    cat("→ Corrélation POSITIVE et FORTE : plus les clients sont satisfaits,\n")
-    cat("  plus ils visitent fréquemment le magasin.\n\n")
-  } else if(test_corr$estimate > 0.3) {
-    cat("→ Corrélation POSITIVE et MODÉRÉE : une satisfaction plus élevée\n")
-    cat("  est associée à une fréquence de visite légèrement plus importante.\n\n")
-  } else if(test_corr$estimate > 0) {
-    cat("→ Corrélation POSITIVE et FAIBLE : il existe un lien positif mais limité\n")
-    cat("  entre satisfaction et fréquence de visite.\n\n")
-  } else if(test_corr$estimate < -0.3) {
-    cat("→ Corrélation NÉGATIVE : plus les clients sont satisfaits,\n")
-    cat("  moins ils visitent le magasin (résultat contre-intuitif à investiguer).\n\n")
-  } else {
-    cat("→ Corrélation NÉGATIVE et FAIBLE.\n\n")
-  }
+if(test_chi2_3$p.value < 0.05) {
+  cat("Il existe une RELATION SIGNIFICATIVE (p < 0.05)\n")
+  cat("entre la fréquence de visite et la satisfaction.\n")
+  cat("Les clients qui visitent plus fréquemment ont des niveaux\n")
+  cat("de satisfaction différents de ceux qui visitent moins.\n\n")
 } else {
-  cat("Il n'y a PAS de corrélation significative (p >= 0.05) entre\n")
-  cat("la satisfaction et la fréquence de visite.\n")
+  cat("Il n'y a PAS de relation significative (p >= 0.05) entre\n")
+  cat("la fréquence de visite et la satisfaction.\n")
   cat("Ces deux variables sont indépendantes.\n\n")
 }
 
